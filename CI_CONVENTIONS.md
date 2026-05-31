@@ -73,6 +73,16 @@ Keep scripts runner-agnostic — no `npm`/`npx` baked in. Compose with `bun run 
 
 Every repo ships `.github/dependabot.yml` with the `github-actions` ecosystem (keeps pinned SHAs current) plus the package ecosystem for the stack (`bun` or `pip`), covering every directory that has a lockfile/manifest. Use unquoted scalars and `commit-message: { prefix: chore, include: scope }` (renders `chore(deps): …`). Enable Dependabot **security updates** in repo settings.
 
-## Branch ruleset (per repo, on the default branch)
+## Branch model: `main` + `staging`
 
-The "Protect Main" ruleset should carry: **required status check `CI`**, required PR review (+ code-owner), **Copilot code review**, `required_linear_history`, no-force-push (`non_fast_forward`), and no-deletion. The uniform `CI` job name is what makes a single required-check name work org-wide.
+Work flows **feature → `staging` → `main`**. `main` is the (eventual) production branch — for now a placeholder, but **protected as if production**. `staging` is the active integration branch and is **protected just as heavily**, so everything is validated before it reaches `main`. Practical consequences:
+
+- **CI + CodeQL trigger on BOTH** branches: `on: push` / `pull_request` with `branches: [main, staging]`.
+- **Dependabot targets `staging`** (`target-branch: staging`) so dependency updates land on staging, pass CI there, and promote to main — never landing on main unvalidated. For monorepo/placeholder repos where the real manifests live on `staging` (e.g. `omni-fi-link`), Dependabot also *reads* manifests from staging.
+- Repos that don't yet have a `staging` branch (e.g. `omni-fi-react-link`) should create one for the promotion flow, or target `main` until they do.
+
+## Branch rulesets (per repo — on BOTH `main` and `staging`)
+
+Each repo has a "Protect Main" **and** a "Protect Staging" ruleset, both carrying the same heavy protection: **required status check `CI`**, required PR review (+ code-owner), **Copilot code review**, `required_linear_history`, no-force-push (`non_fast_forward`), and no-deletion. The uniform `CI` job name is what makes a single required-check name work across both branches and all repos.
+
+(`required_linear_history` requires squash/rebase merges — confirm the repo's merge strategy before enabling.)

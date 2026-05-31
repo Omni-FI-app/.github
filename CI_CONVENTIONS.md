@@ -79,10 +79,14 @@ Work flows **feature → `staging` → `main`**. `main` is the (eventual) produc
 
 - **CI + CodeQL trigger on BOTH** branches: `on: push` / `pull_request` with `branches: [main, staging]`.
 - **Dependabot targets `staging`** (`target-branch: staging`) so dependency updates land on staging, pass CI there, and promote to main — never landing on main unvalidated. For monorepo/placeholder repos where the real manifests live on `staging` (e.g. `omni-fi-link`), Dependabot also *reads* manifests from staging.
-- Repos that don't yet have a `staging` branch (e.g. `omni-fi-react-link`) should create one for the promotion flow, or target `main` until they do.
 
-## Branch rulesets (per repo — on BOTH `main` and `staging`)
+**Exception — public SDK repos use `main` + PR branches only (no `staging`).** This is the industry standard for published SDKs (e.g. `omni-fi-react-link`): contributions land via PR straight to `main`. There, CI triggers on `main` only and Dependabot targets `main`.
 
-Each repo has a "Protect Main" **and** a "Protect Staging" ruleset, both carrying the same heavy protection: **required status check `CI`**, required PR review (+ code-owner), **Copilot code review**, `required_linear_history`, no-force-push (`non_fast_forward`), and no-deletion. The uniform `CI` job name is what makes a single required-check name work across both branches and all repos.
+## Branch rulesets
+
+Every protected branch carries the same heavy protection: **required status check `CI`**, required PR review (+ code-owner), **Copilot code review**, `required_linear_history`, no-force-push (`non_fast_forward`), and no-deletion. The uniform `CI` job name is what makes a single required-check name work across branches and repos.
+
+- `omni-fi-core`, `omni-fi-link`: a "Protect Main" **and** a "Protect Staging" ruleset (both branches).
+- `omni-fi-react-link` (public SDK): "Protect Main" only.
 
 (`required_linear_history` requires squash/rebase merges — confirm the repo's merge strategy before enabling.)

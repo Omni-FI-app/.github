@@ -90,3 +90,22 @@ Every protected branch carries the same heavy protection: **required status chec
 - `omni-fi-react-link` (public SDK): "Protect Main" only.
 
 (`required_linear_history` requires squash/rebase merges — confirm the repo's merge strategy before enabling.)
+
+## README badges
+
+Every **public** repository's `README` opens with two [shields.io](https://shields.io) badges, in this order:
+
+1. **CI status** — links to the `CI` workflow run on the default branch:
+
+   ```
+   [![CI](https://img.shields.io/github/actions/workflow/status/<org>/<repo>/ci.yml?branch=<default-branch>&label=CI)](https://github.com/<org>/<repo>/actions/workflows/ci.yml)
+   ```
+
+2. **License**:
+
+   ```
+   [![License](https://img.shields.io/github/license/<org>/<repo>.svg)](./LICENSE)
+   ```
+
+Both are required on every public repo. Private repos may omit them (CI status is
+visible internally on PRs and the Actions tab); add them when a repo goes public.

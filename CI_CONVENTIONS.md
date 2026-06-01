@@ -2,7 +2,7 @@
 
 Canonical house style for GitHub Actions across all `omni-fi-app` repositories. New repos should start from the **org workflow templates** (Actions → New workflow → "Omni-FI CI (Bun)" / "Omni-FI CodeQL"); existing repos should match this document. Templates live in [`workflow-templates/`](./workflow-templates).
 
-> Why this exists: uniform workflows let us require **one** status-check name (`CI`) org-wide in branch rulesets, keep supply-chain risk down via SHA pinning, and make every repo's CI legible at a glance. This mirrors the standardization applied across the Tradable org.
+> Why this exists: uniform workflows let us require **one** status-check name (`CI`) org-wide in branch rulesets, keep supply-chain risk down via SHA pinning, and make every repo's CI legible at a glance.
 
 ## Repo stacks (the conventions adapt per stack)
 
@@ -35,6 +35,7 @@ Bump via Dependabot (`github-actions` ecosystem, enabled in every repo). Keep th
 | `actions/checkout` | `de0fac2e4500dabe0009e67214ff5f5447ce83dd` | v6.0.2 |
 | `actions/setup-node` | `48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e` | v6.4.0 |
 | `oven-sh/setup-bun` | `0c5077e51419868618aeaa5fe8019c62421857d6` | v2.2.0 |
+| `actions/setup-python` | `a309ff8b426b58ec0e2a45f0f869d46889d02405` | v6.2.0 |
 | `github/codeql-action/*` | `7211b7c8077ea37d8641b6271f6a365a22a5fbfa` | v4.36.0 |
 | `anthropics/claude-code-action` | `787c5a0ce96a9a6cfb050ea0c8f4c05f2447c251` | v1 |
 

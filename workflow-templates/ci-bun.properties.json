@@ -1,0 +1,7 @@
+{
+  "name": "Omni-FI CI (Bun)",
+  "description": "Standardized Omni-FI CI: Bun 1.3.14 + pinned Node (.nvmrc), SHA-pinned actions, job named CI, uniform phase names. Edit the Lint/Build/Test steps for your project.",
+  "iconName": "workflow",
+  "categories": ["Continuous integration"],
+  "filePatterns": ["package\\.json$", "bun\\.lock$"]
+}

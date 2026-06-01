@@ -1,0 +1,7 @@
+{
+  "name": "Omni-FI CodeQL",
+  "description": "Standardized Omni-FI advanced CodeQL: SHA-pinned, weekly, uniform Analyze check, private-repo gate. Only for repos NOT using GitHub default code-scanning (they conflict). Set languages to your stack.",
+  "iconName": "shield-check",
+  "categories": ["Security", "Continuous integration"],
+  "filePatterns": ["package\\.json$", "requirements\\.txt$", "pyproject\\.toml$"]
+}

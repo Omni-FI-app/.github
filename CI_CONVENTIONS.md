@@ -9,8 +9,10 @@ Canonical house style for GitHub Actions across all `omni-fi-app` repositories. 
 | Repo | Stack | Package manager | CI runtime |
 |---|---|---|---|
 | `omni-fi-core` | Python / Django | `pip` (`requirements.txt`) | Python |
+| `omni-fi-web` | Next.js portal (Bun) | `bun` | Bun + Node |
 | `omni-fi-link` | Link Widget (Bun) | `bun` | Bun + Node |
 | `omni-fi-react-link` | React SDK (Bun) | `bun` | Bun + Node |
+| `omni-fi-internal` | Internal admin (Bun) | `bun` | Bun + Node |
 
 What must be **uniform** is the *structure* (job name, permissions, concurrency, SHA-pinning, Dependabot, CodeQL strategy). The *phases* differ by stack (Python lint/type/test vs Bun lint/build/test).
 
@@ -36,6 +38,8 @@ Bump via Dependabot (`github-actions` ecosystem, enabled in every repo). Keep th
 | `actions/setup-node` | `48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e` | v6.4.0 |
 | `oven-sh/setup-bun` | `0c5077e51419868618aeaa5fe8019c62421857d6` | v2.2.0 |
 | `actions/setup-python` | `a309ff8b426b58ec0e2a45f0f869d46889d02405` | v6.2.0 |
+| `actions/cache` | `55cc8345863c7cc4c66a329aec7e433d2d1c52a9` | v6.1.0 |
+| `actions/upload-artifact` | `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a` | v7.0.1 |
 | `github/codeql-action/*` | `7211b7c8077ea37d8641b6271f6a365a22a5fbfa` | v4.36.0 |
 | `anthropics/claude-code-action` | `787c5a0ce96a9a6cfb050ea0c8f4c05f2447c251` | v1 |
 
@@ -76,7 +80,11 @@ Every repo ships `.github/dependabot.yml` with the `github-actions` ecosystem (k
 
 ## Branch model: `main` + `staging`
 
-Work flows **feature → `staging` → `main`**. `main` is the (eventual) production branch — for now a placeholder, but **protected as if production**. `staging` is the active integration branch and is **protected just as heavily**, so everything is validated before it reaches `main`. Practical consequences:
+Work flows **feature → `staging` → `main`**. `main` is the (eventual) production branch — for now a placeholder. `staging` is the active integration branch and is where all work actually lands.
+
+> **`staging` is currently protected MORE heavily than `main`, not less.** Only the `staging` rulesets require a passing `CI` check; no `main` ruleset does. See [Branch rulesets](#branch-rulesets) for the measured state — do not assume `main` is the hardened branch.
+
+Practical consequences:
 
 - **CI + CodeQL trigger on BOTH** branches: `on: push` / `pull_request` with `branches: [main, staging]`.
 - **Dependabot targets `staging`** (`target-branch: staging`) so dependency updates land on staging, pass CI there, and promote to main — never landing on main unvalidated. For monorepo/placeholder repos where the real manifests live on `staging` (e.g. `omni-fi-link`), Dependabot also *reads* manifests from staging.
@@ -85,12 +93,44 @@ Work flows **feature → `staging` → `main`**. `main` is the (eventual) produc
 
 ## Branch rulesets
 
-Every protected branch carries the same heavy protection: **required status check `CI`**, required PR review (+ code-owner), **Copilot code review**, `required_linear_history`, no-force-push (`non_fast_forward`), and no-deletion. The uniform `CI` job name is what makes a single required-check name work across branches and repos.
+This section describes what is **actually configured**, verified against the API on 2026-08-21. It previously described a target state, which is why it is now explicit about the gap.
 
-- `omni-fi-core`, `omni-fi-link`: a "Protect Main" **and** a "Protect Staging" ruleset (both branches).
-- `omni-fi-react-link` (public SDK): "Protect Main" only.
+**Every** branch ruleset carries: required PR review (+ code-owner), **Copilot code review**, no-force-push (`non_fast_forward`), and no-deletion.
 
-(`required_linear_history` requires squash/rebase merges — confirm the repo's merge strategy before enabling.)
+**Only the three `Protect Staging` rulesets additionally require a passing `CI` check and `required_linear_history`** — added 2026-08-18.
+
+| Repo | Ruleset | `CI` required | `required_linear_history` |
+| --- | --- | --- | --- |
+| `omni-fi-core` | Protect Staging | ✅ | ✅ |
+| `omni-fi-web` | Protect Staging | ✅ | ✅ |
+| `omni-fi-link` | Protect Staging | ✅ | ✅ |
+| `omni-fi-core` | Protect Main | ❌ | ❌ |
+| `omni-fi-web` | Protect Main | ❌ | ❌ |
+| `omni-fi-link` | Protect Main | ❌ | ❌ |
+| `omni-fi-react-link` | Protect Main | ❌ | ❌ |
+| `omni-fi-internal` | Protect Main | ❌ | ❌ |
+| `omni-fi-internal` | Protect Staging | ❌ | ❌ |
+
+Two cases deserve attention rather than being read as oversights to copy:
+
+- **`omni-fi-react-link`** has no `staging`, so `main` **is** its production branch — and it is the one production branch with no required status check.
+- **`omni-fi-internal`** has both rulesets and neither carries the rules.
+
+Four repos also have a `Protect Releases` **tag** ruleset (`omni-fi-core`, `omni-fi-web`, `omni-fi-link`, `omni-fi-react-link`, `omni-fi-internal`), which this document does not otherwise cover.
+
+### The `CI` name, and why only one check is required
+
+`CI` is the only required context, pinned to `integration_id: 15368` so a same-named check from another app cannot satisfy it. Deliberately excluded: `Analyze` reports **skipped** on private repos, and requiring a check that never reports deadlocks every PR; `deploy` only runs on push after merge, so requiring it is circular.
+
+`strict_required_status_checks_policy` is **false** — with many open PRs, `strict: true` invalidates every other PR on each merge and forces a re-sync cycle for no safety gain.
+
+### Admin bypass is deliberate, and is not recorded anywhere else
+
+Every ruleset above grants `RepositoryRole 5` (admin) `bypass_mode: pull_request`. **An admin can merge a PR with red CI.** That is the intended trade on `staging` — admins must retain an emergency override — but it means the gate protects the team's PRs from landing red without constraining an admin merge.
+
+**Production must not inherit it.** When a production ruleset is created it should carry `required_status_checks` from day one and **no** `bypass_actors`.
+
+(`required_linear_history` requires squash or rebase merges — confirm the repo's merge strategy before enabling. All five repos already set `allow_merge_commit: false`, so it is belt-and-braces rather than a behaviour change.)
 
 ## README badges
 
